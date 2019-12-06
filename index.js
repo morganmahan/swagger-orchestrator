@@ -52,6 +52,10 @@ app.get('/logout', (req, res) => {
   }
 })
 
+app.get('/exclusiveEndpoint', (req, res) => {
+  return res.send('Exclusive Endpoint')
+})
+
 app.listen(port,  () => {
   console.log("Server is running on "+ port +" port")
 })
