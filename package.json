@@ -1,0 +1,17 @@
+{
+  "name": "projectprototype",
+  "version": "1.0.0",
+  "description": "A prototype of a REST API with sequential actions for my final year project",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Morgan Mahan",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "lodash": "^4.17.15"
+  }
+}
