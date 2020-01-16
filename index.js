@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 const app = express()
 const orchestrator = require('./src/orchestrator')
 const port = 3000
+const apiSpecification = require('./swagger.json')
 
 const sessionDetails = {
   username: undefined
@@ -15,7 +16,7 @@ const users = [
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
-app.use(orchestrator)
+app.use(orchestrator(apiSpecification))
 
 app.get('/whoami', (req, res) => {
   sessionDetails.username ? res.status(200) : res.status(401)

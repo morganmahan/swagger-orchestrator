@@ -1,7 +1,7 @@
 {
-  "name": "projectprototype",
+  "name": "swagger-orchestrator",
   "version": "1.0.0",
-  "description": "A prototype of a REST API with sequential actions for my final year project",
+  "description": "An API orchestrator enforcing an OpenAPI specification onto API calls",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
