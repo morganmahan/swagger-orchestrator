@@ -1,62 +1,47 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const app = express()
-const orchestrator = require('./src/orchestrator')
-const port = 3000
-const apiSpecification = require('./swagger.json')
+const _ = require('lodash')
 
-const sessionDetails = {
-  username: undefined
+let previousCalls = []
+
+module.exports = (apiSpec) => {
+  return (req, res, next) => {
+    const callConfig = _.get(apiSpec, `paths.${req.url}.${req.method.toLowerCase()}`)
+    if (callConfig) { // If the endpint is specified
+      const preRequisiteCalls = callConfig['x-prerequisite']
+      if (preRequisiteCalls && preRequisiteCalls.length > 0) { // If the endpoint has prerequisite calls
+        if (checkPrerequisiteCalls(preRequisiteCalls) === false) return res.send(`All prerequisite endpoints for ${req.url} ${req.method} have not been called`)
+      }
+
+      const exclusiveCalls = callConfig['x-exclusive']
+      if (exclusiveCalls && exclusiveCalls.length > 0) {
+        if (checkExclusiveCalls(exclusiveCalls) === false) return res.send(`Endpoint ${req.url} ${req.method} cannot be called with an exclusive endpoint`)
+      }
+
+      if (callConfig && callConfig['x-returnToInitialState']) previousCalls = []
+      previousCalls.push({ [req.url.slice(1)]: req.method.toLowerCase() }) // Add the current call to the list of previous calls
+      return next()
+    }
+    return res.send(`Endpoint ${req.url} ${req.method} does not exist`) // Endpoint not in specification
+  }
 }
 
-const users = [
-  'morganmahan',
-  'joebloggs'
-]
+const checkPrerequisiteCalls = preRequisiteCalls => {
+  if (previousCalls.length === 0) return false
+  preRequisiteCalls.forEach(preReqCall => { // Loop through the endpoints prerequisite calls
+    let matchingCall = false
+    previousCalls.forEach(call => { // Checking each prereq against the previous calls to the API
+      if (_.isEqual(preReqCall, call)) matchingCall = true // if the prerequisite call has been previously called, check the next prerequisite call
+    })
+    if (!matchingCall) return false // if the prerequisite call has not been called previously, the requirements are not satisfied
+    return true
+  })
+}
 
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
-app.use(orchestrator(apiSpecification))
-
-app.get('/whoami', (req, res) => {
-  sessionDetails.username ? res.status(200) : res.status(401)
-  return res.send(sessionDetails.username || 'You are not logged in')
-})
-
-app.post('/login', (req, res) => {
-  if (sessionDetails.username) return res.send('User already authenticated')
-  if (req.body.username && req.body.password) {
-    const userTryingToAuthenticate = req.body.username
-    if (users.includes(userTryingToAuthenticate)) {
-      sessionDetails.username = userTryingToAuthenticate
-      res.status(200)
-      return res.send('Success! ' + userTryingToAuthenticate + ' is now authenticated')
-    } else {
-      res.status(401)
-      return res.send('Please check username and password')
-    }
-  } else {
-    res.status(400)
-    return res.send('Please send username and password')
-  }
-})
-
-app.get('/logout', (req, res) => {
-  if (sessionDetails.username) {
-    const userLoggedOut = sessionDetails.username
-    sessionDetails.username = null
-    res.status(200)
-    return res.send(userLoggedOut + ' is now logged out')
-  } else {
-    res.status(400)
-    return res.send('You cannot logout if you are not logged in')
-  }
-})
-
-app.get('/exclusiveEndpoint', (req, res) => {
-  return res.send('Exclusive Endpoint')
-})
-
-app.listen(port,  () => {
-  console.log("Server is running on "+ port +" port")
-})
+const checkExclusiveCalls = exclusiveCalls => {
+  let noExclusiveEndpointCalled = true
+  exclusiveCalls.forEach(call => {
+    previousCalls.forEach(prevCall => {
+      if (_.isEqual(prevCall, call)) noExclusiveEndpointCalled = false
+    })
+  })
+  return noExclusiveEndpointCalled
+}
