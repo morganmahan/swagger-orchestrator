@@ -2,7 +2,7 @@ const _ = require('lodash')
 
 let previousCalls = []
 
-module.exports = (apiSpec) => {
+module.exports = apiSpec => {
   return (req, res, next) => {
     const callConfig = _.get(apiSpec, `paths.${req.url}.${req.method.toLowerCase()}`)
     if (callConfig) { // If the endpint is specified
@@ -29,22 +29,48 @@ module.exports = (apiSpec) => {
 
 const checkPrerequisiteCalls = preRequisiteCalls => {
   if (previousCalls.length === 0) return false
-  let checksPassed = true;
-  preRequisiteCalls.forEach(preReqCall => { // Loop through the endpoints prerequisite calls
-    const preReqEndpoint = Object.keys(preReqCall)[0]
-    const preReqProperties = preReqCall[preReqEndpoint]
-    const preReqCheck = {[preReqEndpoint]: preReqProperties.method}
-    if (preReqProperties.immediate) { // If the pre requisite needs to have been the call before this one
-      if (!_.isEqual(preReqCheck, previousCalls[previousCalls.length - 1])) checksPassed = false
-    } else {
+  let checksPassed = true
+  const immediatePreReqCalls = []
+  preRequisiteCalls.forEach(preReqCall => {
+    if (preReqCall[Object.keys(preReqCall)[0]].immediate) immediatePreReqCalls.push(preReqCall)
+  })
+  if (immediatePreReqCalls && immediatePreReqCalls.length > 0) { // If any pre requisite needs to have been the call before this one
+    checksPassed = checkImmediatePrerequisiteCalls(immediatePreReqCalls)
+  } else {
+    preRequisiteCalls.forEach(preReqCall => { // Loop through the endpoints prerequisite calls
+      const preReqProperties = getPrerequisiteProperties(preReqCall)
       let matchingCall = false
       previousCalls.forEach(call => { // Checking each prereq against any previous calls to the API
-        if (_.isEqual(preReqCheck, call)) matchingCall = true
+        if (_.isEqual(preReqProperties.check, call)) matchingCall = true
       })
       if (!matchingCall) checksPassed = false
+    })
+  }
+  return checksPassed
+}
+
+const checkImmediatePrerequisiteCalls = preRequisiteCalls => {
+  let checksPassed = true
+  preRequisiteCalls.forEach(preReqCall => {
+    const preReqProperties = getPrerequisiteProperties(preReqCall)
+    let matchingCall = false
+    for (let i = previousCalls.length; i > previousCalls.length - preRequisiteCalls.length; i--) { // Loop over the last (however many immediate prereqs exist) previous calls
+      if (_.isEqual(preReqProperties.check, previousCalls[i-1])) matchingCall = true
     }
+    if (!matchingCall) checksPassed = false
   })
   return checksPassed
+}
+
+const getPrerequisiteProperties = preRequisiteCall => {
+  const preReqEndpoint = Object.keys(preRequisiteCall)[0]
+  const preReqProperties = preRequisiteCall[preReqEndpoint]
+  const preReqCheck = {[preReqEndpoint]: preReqProperties.method}
+  return {
+    endpoint: preReqEndpoint,
+    properties: preReqProperties,
+    check: preReqCheck
+  }
 }
 
 const checkExclusiveCalls = exclusiveCalls => {
