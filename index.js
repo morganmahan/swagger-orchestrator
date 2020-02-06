@@ -16,8 +16,11 @@ module.exports = (apiSpec) => {
         if (checkExclusiveCalls(exclusiveCalls) === false) return res.send(`Endpoint ${req.url} ${req.method} cannot be called with an exclusive endpoint`)
       }
 
-      if (callConfig && callConfig['x-returnToInitialState']) previousCalls = []
-      previousCalls.push({ [req.url.slice(1)]: req.method.toLowerCase() }) // Add the current call to the list of previous calls
+      if (callConfig['x-returnToInitialState']) {
+        emptyPreviousCalls()
+        return next()
+      }
+      addToPreviousCalls(req) // Add the current call to the list of previous calls
       return next()
     }
     return res.send(`Endpoint ${req.url} ${req.method} does not exist`) // Endpoint not in specification
@@ -26,14 +29,22 @@ module.exports = (apiSpec) => {
 
 const checkPrerequisiteCalls = preRequisiteCalls => {
   if (previousCalls.length === 0) return false
+  let checksPassed = true;
   preRequisiteCalls.forEach(preReqCall => { // Loop through the endpoints prerequisite calls
-    let matchingCall = false
-    previousCalls.forEach(call => { // Checking each prereq against the previous calls to the API
-      if (_.isEqual(preReqCall, call)) matchingCall = true // if the prerequisite call has been previously called, check the next prerequisite call
-    })
-    if (!matchingCall) return false // if the prerequisite call has not been called previously, the requirements are not satisfied
-    return true
+    const preReqEndpoint = Object.keys(preReqCall)[0]
+    const preReqProperties = preReqCall[preReqEndpoint]
+    const preReqCheck = {[preReqEndpoint]: preReqProperties.method}
+    if (preReqProperties.immediate) { // If the pre requisite needs to have been the call before this one
+      if (!_.isEqual(preReqCheck, previousCalls[previousCalls.length - 1])) checksPassed = false
+    } else {
+      let matchingCall = false
+      previousCalls.forEach(call => { // Checking each prereq against any previous calls to the API
+        if (_.isEqual(preReqCheck, call)) matchingCall = true
+      })
+      if (!matchingCall) checksPassed = false
+    }
   })
+  return checksPassed
 }
 
 const checkExclusiveCalls = exclusiveCalls => {
@@ -44,4 +55,12 @@ const checkExclusiveCalls = exclusiveCalls => {
     })
   })
   return noExclusiveEndpointCalled
+}
+
+const addToPreviousCalls = req => {
+  previousCalls.push({ [req.url.slice(1)]: req.method.toLowerCase() })
+}
+
+const emptyPreviousCalls = () => {
+  previousCalls = []
 }
