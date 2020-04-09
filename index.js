@@ -16,7 +16,6 @@ module.exports = apiSpec => {
       const preRequisiteCalls = callConfig['x-prerequisite']
       if (preRequisiteCalls && preRequisiteCalls.endpoints && preRequisiteCalls.endpoints.length > 0) { // If the endpoint has prerequisite calls
         if (checkPrerequisiteCalls(preRequisiteCalls) === false) return res.send(`All prerequisite endpoints for ${req.url} ${req.method} have not been called`)
-        // TODO send back what prerequisite endpoints havent been called yet
       }
 
       if (nextCalls && nextCalls.endpoints && nextCalls.endpoints.length > 0) {
@@ -36,7 +35,6 @@ module.exports = apiSpec => {
       const exclusiveCalls = callConfig['x-exclusive']
       if (exclusiveCalls && exclusiveCalls.length > 0) {
         if (checkExclusiveCalls(exclusiveCalls) === false) return res.send(`Endpoint ${req.url} ${req.method} cannot be called with an exclusive endpoint`)
-        // TODO send back the exclusive endpoint that has been called that causes this call to be rejected
       }
 
       if (callConfig['x-returnToInitialState']) {
