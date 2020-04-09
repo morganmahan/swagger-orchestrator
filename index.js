@@ -45,11 +45,11 @@ module.exports = apiSpec => {
         return next()
       }
 
+      // TODO
       // if the current endpoint has postrequisites but all === true && endpoints.length > 0, need to add the postrequisites to
       // nextCalls once all the current nextCalls have been satisfied
       // if !nextCalls.all, should also allow either the current nextCalls to still be called, or the postrequisites of one of nextCalls
       // to be called, thus entering the next part of the workflow
-      // if (nextCalls.endpoints.length === 0 || !nextCalls.all) { // not sure about this?
       const postrequisiteCalls = callConfig['x-postrequisite']
       if (postrequisiteCalls && postrequisiteCalls.endpoints && postrequisiteCalls.endpoints.length > 0) {
         const postrequisiteCallsCopy = JSON.parse(JSON.stringify(callConfig['x-postrequisite']))
@@ -97,7 +97,6 @@ const checkAllPrerequisiteCalls = preRequisiteCalls => {
 }
 
 const checkPostrequisiteCalls = req => {
-  // check if req is one of the endpoints in nextCalls
   const request = convertEndpointFormat(req)
   const matchingCall = nextCalls.endpoints.find(call => {
     return _.isEqual(request, call)
