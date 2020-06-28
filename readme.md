@@ -1,6 +1,8 @@
 # Swagger Orchestrator
 An orchestrator enforcing restrictions in OpenAPI specifications to the calls made to your REST API
 
+This was created as a proof of concept of an orchestrator for my Stage 3 research project as part of my Computer Science degree at The University of Kent.
+
 ## Usage
 Install the orchestrator into your Node API using:
 ```
